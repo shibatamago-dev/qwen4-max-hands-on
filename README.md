@@ -2,7 +2,15 @@
 
 Alibaba **Qwen4-Max**（2026-11-16 GA）と **Gemini 4 Hydrogen** に、まったく同じプロンプトで「単一HTMLファイルのダンジョン探索ゲーム」を作らせ、生成物を実際に動かして検証したときの再現資料です。
 
-Zenn記事: （下書き済み・公開後にリンクを追記）
+Zenn記事: https://zenn.dev/shibatamago_dev/articles/qwen4-max-hands-on
+
+## ブラウザで遊べます（GitHub Pages）
+
+生成されたゲームは単一HTML＋JavaScriptで、ブラウザの中だけで動きます。サーバー側の処理はないので、静的ホスティング（GitHub Pages）でそのまま遊べます。
+
+- 入口: https://shibatamago-dev.github.io/qwen4-max-hands-on/
+- Qwen4-Max版: https://shibatamago-dev.github.io/qwen4-max-hands-on/qwen4-max_game.html
+- Gemini 4 Hydrogen版: https://shibatamago-dev.github.io/qwen4-max-hands-on/hydrogen_game.html
 
 ## 課題
 

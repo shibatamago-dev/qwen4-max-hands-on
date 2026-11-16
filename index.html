@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qwen4-Max × Gemini 4 Hydrogen — 生成ゲームで遊ぶ</title>
+<meta property="og:title" content="Qwen4-Max × Gemini 4 Hydrogen — 生成ゲームで遊ぶ">
+<meta property="og:description" content="同じプロンプトで2つのモデルに作らせた単一HTMLダンジョンゲーム。ブラウザでそのまま遊べます。">
+<style>
+  body { background:#141a2e; color:#e8ecf6; font-family: system-ui, sans-serif; margin:0; padding:32px 16px; }
+  main { max-width:640px; margin:0 auto; }
+  h1 { font-size:22px; line-height:1.4; }
+  p { line-height:1.8; color:#b9c2d9; }
+  a.card { display:block; background:#1d2745; border:1px solid #33406b; border-radius:12px; padding:18px 20px; margin:16px 0; color:#e8ecf6; text-decoration:none; }
+  a.card:hover { background:#243158; }
+  a.card b { font-size:18px; }
+  a.card span { display:block; margin-top:6px; color:#9fb0d8; font-size:14px; line-height:1.6; }
+  .links { margin-top:28px; font-size:14px; }
+  .links a { color:#8fd0ff; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Qwen4-Max × Gemini 4 Hydrogen<br>同じプロンプトで作らせたゲーム</h1>
+  <p>「単一のHTMLファイルで動くグリッド型ダンジョン探索ゲーム」という同じ課題で、2つのモデルが生成したゲームです。どちらもブラウザでそのまま遊べます（外部ファイル・ライブラリなし）。</p>
+
+  <a class="card" href="./qwen4-max_game.html">
+    <b>▶ Qwen4-Max版「篝火の迷宮」で遊ぶ</b>
+    <span>1,196行 / 65,716バイト。Canvas描画、効果音、タイトル画面、敵3種まで作り込んだ版。</span>
+  </a>
+
+  <a class="card" href="./hydrogen_game.html">
+    <b>▶ Gemini 4 Hydrogen版で遊ぶ</b>
+    <span>798行 / 23,291バイト。DOM描画で仕様どおり堅実にまとめた版。</span>
+  </a>
+
+  <p class="links">
+    検証の詳細： <a href="https://github.com/shibatamago-dev/qwen4-max-hands-on">GitHubリポジトリ</a>（プロンプト・検証ハーネス・結果）<br>
+    記事： <a href="https://zenn.dev/shibatamago_dev/articles/qwen4-max-hands-on">Zenn「Qwen4-Maxを実際に動かしてみた」</a>
+  </p>
+</main>
+</body>
+</html>
