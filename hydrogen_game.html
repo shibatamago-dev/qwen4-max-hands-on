@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>10×10 ダンジョン探索ゲーム</title>
+  <style>
+    :root {
+      --bg: #12141c;
+      --panel: #1d212e;
+      --border: #2f3549;
+      --text: #eef1f7;
+      --muted: #9aa3b8;
+      --floor: #262b3b;
+      --floor-alt: #232837;
+      --wall: #0d0f15;
+      --wall-top: #384057;
+      --accent: #4f8cff;
+      --hp: #3ddc84;
+      --hp-low: #ff5c5c;
+      --warn: #ffb84d;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+    }
+
+    .game-container {
+      width: 100%;
+      max-width: 420px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .btn-restart {
+      background: #2c3347;
+      color: var(--text);
+      border: 1px solid #414b66;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn-restart:hover {
+      background: #38415a;
+    }
+
+    .btn-restart:active {
+      transform: scale(0.96);
+    }
+
+    .status-bar {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 8px;
+      background: #151822;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 3px;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .hp-track {
+      width: 100%;
+      height: 7px;
+      background: #2b3042;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .hp-fill {
+      height: 100%;
+      width: 100%;
+      background: var(--hp);
+      transition: width 0.2s ease, background-color 0.2s ease;
+    }
+
+    .board-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: var(--wall);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .board {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+    }
+
+    .cell {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(16px, 5.2vw, 24px);
+      line-height: 1;
+    }
+
+    .cell.floor {
+      background: var(--floor);
+      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.03);
+    }
+
+    .cell.floor.alt {
+      background: var(--floor-alt);
+    }
+
+    .cell.wall {
+      background: linear-gradient(180deg, var(--wall-top) 0%, #222738 24%, var(--wall) 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .cell.exit {
+      background: radial-gradient(circle, rgba(79, 140, 255, 0.28) 0%, var(--floor) 75%);
+    }
+
+    .enemy-hp {
+      position: absolute;
+      bottom: 1px;
+      right: 2px;
+      font-size: 9px;
+      font-weight: 800;
+      color: #fff;
+      background: rgba(210, 45, 45, 0.9);
+      padding: 0 3px;
+      border-radius: 4px;
+      line-height: 1.2;
+      pointer-events: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(12, 14, 20, 0.84);
+      backdrop-filter: blur(3px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .overlay h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .overlay p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .overlay .btn-primary {
+      margin-top: 6px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .log-box {
+      background: #151822;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 0.82rem;
+      color: #d6dced;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 52px);
+      grid-template-rows: repeat(2, 46px);
+      gap: 6px;
+      margin: 0 auto;
+    }
+
+    .pad-btn {
+      background: #282e40;
+      color: var(--text);
+      border: 1px solid #3c4560;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+
+    .pad-btn:active {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: scale(0.95);
+    }
+
+    .pad-up { grid-column: 2; grid-row: 1; }
+    .pad-left { grid-column: 1; grid-row: 2; }
+    .pad-down { grid-column: 2; grid-row: 2; }
+    .pad-right { grid-column: 3; grid-row: 2; }
+
+    .legend {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .hit-flash {
+      animation: flash 0.2s ease;
+    }
+
+    @keyframes flash {
+      0% { filter: brightness(2.2); }
+      100% { filter: brightness(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <div class="header">
+      <div class="title">⚔️ ダンジョン探索</div>
+      <button id="restartBtn" class="btn-restart" type="button">リスタート</button>
+    </div>
+
+    <div class="status-bar">
+      <div class="stat-item">
+        <div class="stat-label">HP <span id="hpText">20 / 20</span></div>
+        <div class="hp-track">
+          <div id="hpFill" class="hp-fill"></div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">階層</div>
+        <div class="stat-value" id="floorText">1 / 3 F</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">撃破数</div>
+        <div class="stat-value" id="killsText">0 体</div>
+      </div>
+    </div>
+
+    <div class="board-wrapper">
+      <div id="board" class="board" aria-label="ダンジョンマップ"></div>
+      <div id="overlay" class="overlay">
+        <h2 id="overlayTitle"></h2>
+        <p id="overlayDesc"></p>
+        <button id="overlayRestartBtn" class="btn-primary" type="button">もう一度プレイ</button>
+      </div>
+    </div>
+
+    <div id="logBox" class="log-box">出口(🚪)を目指して進もう！</div>
+
+    <div class="controls">
+      <div class="dpad">
+        <button class="pad-btn pad-up" data-dx="0" data-dy="-1" aria-label="上へ移動">▲</button>
+        <button class="pad-btn pad-left" data-dx="-1" data-dy="0" aria-label="左へ移動">◀</button>
+        <button class="pad-btn pad-down" data-dx="0" data-dy="1" aria-label="下へ移動">▼</button>
+        <button class="pad-btn pad-right" data-dx="1" data-dy="0" aria-label="右へ移動">▶</button>
+      </div>
+    </div>
+
+    <div class="legend">
+      🧙 自分 / 👾 敵(3体) / 🧪 回復(2個) / 🚪 出口<br>
+      移動: 矢印キー / WASD / 画面ボタン
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const SIZE = 10;
+      const MAX_FLOOR = 3;
+      const MAX_HP = 20;
+      const PLAYER_ATK = 4;
+      const HEAL_AMOUNT = 7;
+      const ENEMY_COUNT = 3;
+      const ITEM_COUNT = 2;
+
+      const TILE_WALL = 1;
+      const TILE_FLOOR = 0;
+
+      const boardEl = document.getElementById("board");
+      const hpTextEl = document.getElementById("hpText");
+      const hpFillEl = document.getElementById("hpFill");
+      const floorTextEl = document.getElementById("floorText");
+      const killsTextEl = document.getElementById("killsText");
+      const logBoxEl = document.getElementById("logBox");
+      const overlayEl = document.getElementById("overlay");
+      const overlayTitleEl = document.getElementById("overlayTitle");
+      const overlayDescEl = document.getElementById("overlayDesc");
+      const restartBtn = document.getElementById("restartBtn");
+      const overlayRestartBtn = document.getElementById("overlayRestartBtn");
+
+      let state = {};
+
+      function keyOf(x, y) {
+        return `${x},${y}`;
+      }
+
+      function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      function generateFloorMap(floor) {
+        while (true) {
+          const grid = Array.from({ length: SIZE }, (_, y) =>
+            Array.from({ length: SIZE }, (_, x) => {
+              if (x === 0 || y === 0 || x === SIZE - 1 || y === SIZE - 1) {
+                return TILE_WALL;
+              }
+              return Math.random() < 0.24 ? TILE_WALL : TILE_FLOOR;
+            })
+          );
+
+          const floors = [];
+          for (let y = 1; y < SIZE - 1; y++) {
+            for (let x = 1; x < SIZE - 1; x++) {
+              if (grid[y][x] === TILE_FLOOR) floors.push({ x, y });
+            }
+          }
+
+          if (floors.length < 28) continue;
+
+          // プレイヤーの開始位置を選び、BFSで到達可能マスを取得
+          const start = floors[Math.floor(Math.random() * floors.length)];
+          const dist = Array.from({ length: SIZE }, () => Array(SIZE).fill(-1));
+          const queue = [start];
+          dist[start.y][start.x] = 0;
+          const reachable = [];
+
+          while (queue.length > 0) {
+            const cur = queue.shift();
+            reachable.push({ x: cur.x, y: cur.y, d: dist[cur.y][cur.x] });
+            const dirs = [
+              [1, 0],
+              [-1, 0],
+              [0, 1],
+              [0, -1],
+            ];
+            for (const [dx, dy] of dirs) {
+              const nx = cur.x + dx;
+              const ny = cur.y + dy;
+              if (
+                nx >= 0 &&
+                nx < SIZE &&
+                ny >= 0 &&
+                ny < SIZE &&
+                grid[ny][nx] === TILE_FLOOR &&
+                dist[ny][nx] === -1
+              ) {
+                dist[ny][nx] = dist[cur.y][cur.x] + 1;
+                queue.push({ x: nx, y: ny });
+              }
+            }
+          }
+
+          if (reachable.length < 24) continue;
+
+          // 到達できない床は壁にしてマップを綺麗に整える
+          const reachableSet = new Set(reachable.map((p) => keyOf(p.x, p.y)));
+          for (let y = 1; y < SIZE - 1; y++) {
+            for (let x = 1; x < SIZE - 1; x++) {
+              if (!reachableSet.has(keyOf(x, y))) {
+                grid[y][x] = TILE_WALL;
+              }
+            }
+          }
+
+          // 出口はプレイヤーから遠い候補から選ぶ
+          reachable.sort((a, b) => b.d - a.d);
+          const farPool = reachable.slice(0, Math.max(3, Math.floor(reachable.length * 0.25)));
+          const exit = farPool[Math.floor(Math.random() * farPool.length)];
+
+          if (exit.d < 4) continue;
+
+          const used = new Set([keyOf(start.x, start.y), keyOf(exit.x, exit.y)]);
+
+          // 敵3体はスタート地点に隣接しない場所優先
+          const enemyCandidates = shuffle(
+            reachable.filter((p) => !used.has(keyOf(p.x, p.y)) && p.d >= 2)
+          );
+          if (enemyCandidates.length < ENEMY_COUNT) continue;
+
+          const enemies = [];
+          const enemyHp = 7 + floor; // 1F:8, 2F:9, 3F:10
+          const enemyAtk = 2 + Math.floor(floor / 2); // 1F:2, 2F:3, 3F:3
+
+          for (let i = 0; i < ENEMY_COUNT; i++) {
+            const pos = enemyCandidates[i];
+            used.add(keyOf(pos.x, pos.y));
+            enemies.push({
+              id: i + 1,
+              x: pos.x,
+              y: pos.y,
+              hp: enemyHp,
+              maxHp: enemyHp,
+              atk: enemyAtk,
+            });
+          }
+
+          // 回復アイテム2個を空き床に配置
+          const itemCandidates = shuffle(
+            reachable.filter((p) => !used.has(keyOf(p.x, p.y)))
+          );
+          if (itemCandidates.length < ITEM_COUNT) continue;
+
+          const items = [];
+          for (let i = 0; i < ITEM_COUNT; i++) {
+            const pos = itemCandidates[i];
+            used.add(keyOf(pos.x, pos.y));
+            items.push({ x: pos.x, y: pos.y });
+          }
+
+          return {
+            grid,
+            playerPos: { x: start.x, y: start.y },
+            exit,
+            enemies,
+            items,
+          };
+        }
+      }
+
+      function initGame() {
+        state = {
+          hp: MAX_HP,
+          maxHp: MAX_HP,
+          floor: 1,
+          kills: 0,
+          gameOver: false,
+          victory: false,
+          log: "1階に降り立った。出口(🚪)を目指そう！",
+          flashPlayer: false,
+        };
+        loadFloor(1);
+        overlayEl.classList.remove("show");
+        render();
+      }
+
+      function loadFloor(floor) {
+        const mapData = generateFloorMap(floor);
+        state.floor = floor;
+        state.grid = mapData.grid;
+        state.player = mapData.playerPos;
+        state.exit = mapData.exit;
+        state.enemies = mapData.enemies;
+        state.items = mapData.items;
+      }
+
+      function getEnemyAt(x, y) {
+        return state.enemies.find((e) => e.hp > 0 && e.x === x && e.y === y);
+      }
+
+      function getItemAt(x, y) {
+        return state.items.findIndex((it) => it.x === x && it.y === y);
+      }
+
+      function findNextStepToPlayer(enemy) {
+        const targetX = state.player.x;
+        const targetY = state.player.y;
+
+        // 隣接していればそのままプレイヤーのマスを返す（攻撃対象）
+        if (Math.abs(enemy.x - targetX) + Math.abs(enemy.y - targetY) === 1) {
+          return { x: targetX, y: targetY };
+        }
+
+        // BFSで他の生存敵を避けつつ最短経路を探す
+        const blocked = new Set(
+          state.enemies
+            .filter((e) => e.hp > 0 && e.id !== enemy.id)
+            .map((e) => keyOf(e.x, e.y))
+        );
+
+        const queue = [{ x: enemy.x, y: enemy.y, firstStep: null }];
+        const visited = new Set([keyOf(enemy.x, enemy.y)]);
+        const dirs = [
+          [0, -1],
+          [0, 1],
+          [-1, 0],
+          [1, 0],
+        ];
+
+        while (queue.length > 0) {
+          const cur = queue.shift();
+          for (const [dx, dy] of dirs) {
+            const nx = cur.x + dx;
+            const ny = cur.y + dy;
+            if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE) continue;
+            if (state.grid[ny][nx] === TILE_WALL) continue;
+
+            const k = keyOf(nx, ny);
+            if (visited.has(k)) continue;
+            if (blocked.has(k)) continue;
+
+            const step = cur.firstStep || { x: nx, y: ny };
+            if (nx === targetX && ny === targetY) {
+              return step;
+            }
+
+            visited.add(k);
+            queue.push({ x: nx, y: ny, firstStep: step });
+          }
+        }
+
+        // 経路が塞がれている場合は距離が縮まる空きマスへ移動
+        let best = null;
+        let bestDist = Math.abs(enemy.x - targetX) + Math.abs(enemy.y - targetY);
+        for (const [dx, dy] of dirs) {
+          const nx = enemy.x + dx;
+          const ny = enemy.y + dy;
+          if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE) continue;
+          if (state.grid[ny][nx] === TILE_WALL) continue;
+          if (blocked.has(keyOf(nx, ny))) continue;
+          const d = Math.abs(nx - targetX) + Math.abs(ny - targetY);
+          if (d < bestDist) {
+            bestDist = d;
+            best = { x: nx, y: ny };
+          }
+        }
+        return best;
+      }
+
+      function movePlayer(dx, dy) {
+        if (state.gameOver || state.victory) return;
+
+        const nx = state.player.x + dx;
+        const ny = state.player.y + dy;
+
+        if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE) return;
+        if (state.grid[ny][nx] === TILE_WALL) {
+          state.log = "壁に阻まれて進めない。";
+          render();
+          return;
+        }
+
+        const logs = [];
+        state.flashPlayer = false;
+
+        // 敵がいれば攻撃（移動せず戦闘）
+        const targetEnemy = getEnemyAt(nx, ny);
+        if (targetEnemy) {
+          targetEnemy.hp = Math.max(0, targetEnemy.hp - PLAYER_ATK);
+          if (targetEnemy.hp === 0) {
+            state.kills += 1;
+            logs.push(`敵に${PLAYER_ATK}ダメージ！敵を倒した！`);
+          } else {
+            logs.push(`敵に${PLAYER_ATK}ダメージ！(敵残りHP:${targetEnemy.hp})`);
+          }
+        } else {
+          // 空きマスへ移動
+          state.player.x = nx;
+          state.player.y = ny;
+
+          // 回復アイテム取得判定
+          const itemIdx = getItemAt(nx, ny);
+          if (itemIdx !== -1) {
+            state.items.splice(itemIdx, 1);
+            const prevHp = state.hp;
+            state.hp = Math.min(state.maxHp, state.hp + HEAL_AMOUNT);
+            const healed = state.hp - prevHp;
+            logs.push(`回復薬を拾ってHPが${healed}回復！`);
+          }
+
+          // 出口到達判定
+          if (nx === state.exit.x && ny === state.exit.y) {
+            if (state.floor >= MAX_FLOOR) {
+              state.victory = true;
+              state.log = "3階の出口に到達！ダンジョンを踏破した！";
+              showEndOverlay(
+                "🎉 ゲームクリア！",
+                `全3階を踏破しました！ 撃破数: ${state.kills}体 / 残りHP: ${state.hp}`
+              );
+              render();
+              return;
+            } else {
+              const nextFloor = state.floor + 1;
+              loadFloor(nextFloor);
+              state.log = `${nextFloor}階へ降りた！敵が少し強くなった気がする…`;
+              render();
+              return;
+            }
+          }
+        }
+
+        // プレイヤー行動後、生存中の敵が1マスずつ追跡＆接触攻撃
+        for (const enemy of state.enemies) {
+          if (enemy.hp <= 0) continue;
+          const next = findNextStepToPlayer(enemy);
+          if (!next) continue;
+
+          if (next.x === state.player.x && next.y === state.player.y) {
+            state.hp = Math.max(0, state.hp - enemy.atk);
+            state.flashPlayer = true;
+            logs.push(`敵の攻撃！${enemy.atk}ダメージを受けた！`);
+            if (state.hp === 0) {
+              state.gameOver = true;
+              break;
+            }
+          } else {
+            enemy.x = next.x;
+            enemy.y = next.y;
+          }
+        }
+
+        state.log = logs.length > 0 ? logs.join(" / ") : "ダンジョンを進んだ。";
+
+        if (state.gameOver) {
+          showEndOverlay(
+            "💀 ゲームオーバー",
+            `${state.floor}階で力尽きた… 撃破数: ${state.kills}体`
+          );
+        }
+
+        render();
+      }
+
+      function showEndOverlay(title, desc) {
+        overlayTitleEl.textContent = title;
+        overlayDescEl.textContent = desc;
+        overlayEl.classList.add("show");
+      }
+
+      function render() {
+        hpTextEl.textContent = `${state.hp} / ${state.maxHp}`;
+        const hpRatio = Math.max(0, (state.hp / state.maxHp) * 100);
+        hpFillEl.style.width = `${hpRatio}%`;
+        hpFillEl.style.backgroundColor = hpRatio <= 30 ? "var(--hp-low)" : "var(--hp)";
+        floorTextEl.textContent = `${state.floor} / ${MAX_FLOOR} F`;
+        killsTextEl.textContent = `${state.kills} 体`;
+        logBoxEl.textContent = state.log;
+
+        boardEl.innerHTML = "";
+        const fragment = document.createDocumentFragment();
+
+        for (let y = 0; y < SIZE; y++) {
+          for (let x = 0; x < SIZE; x++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+
+            if (state.grid[y][x] === TILE_WALL) {
+              cell.classList.add("wall");
+            } else {
+              cell.classList.add("floor");
+              if ((x + y) % 2 === 1) cell.classList.add("alt");
+
+              const isExit = state.exit.x === x && state.exit.y === y;
+              const isPlayer = state.player.x === x && state.player.y === y;
+              const enemy = getEnemyAt(x, y);
+              const hasItem = getItemAt(x, y) !== -1;
+
+              if (isExit) {
+                cell.classList.add("exit");
+              }
+
+              if (isPlayer) {
+                cell.textContent = "🧙";
+                if (state.flashPlayer) {
+                  cell.classList.add("hit-flash");
+                }
+              } else if (enemy) {
+                cell.textContent = "👾";
+                const hpBadge = document.createElement("span");
+                hpBadge.className = "enemy-hp";
+                hpBadge.textContent = enemy.hp;
+                cell.appendChild(hpBadge);
+              } else if (hasItem) {
+                cell.textContent = "🧪";
+              } else if (isExit) {
+                cell.textContent = "🚪";
+              }
+            }
+            fragment.appendChild(cell);
+          }
+        }
+
+        boardEl.appendChild(fragment);
+      }
+
+      // キーボード操作（矢印キー / WASD）
+      window.addEventListener("keydown", (e) => {
+        const key = e.key.toLowerCase();
+        let dx = 0;
+        let dy = 0;
+
+        if (key === "arrowup" || key === "w") dy = -1;
+        else if (key === "arrowdown" || key === "s") dy = 1;
+        else if (key === "arrowleft" || key === "a") dx = -1;
+        else if (key === "arrowright" || key === "d") dx = 1;
+        else return;
+
+        e.preventDefault();
+        movePlayer(dx, dy);
+      });
+
+      // スマホ用ボタン操作
+      document.querySelectorAll(".pad-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const dx = Number(btn.dataset.dx);
+          const dy = Number(btn.dataset.dy);
+          movePlayer(dx, dy);
+        });
+      });
+
+      restartBtn.addEventListener("click", initGame);
+      overlayRestartBtn.addEventListener("click", initGame);
+
+      initGame();
+    })();
+  </script>
+</body>
+</html>
