@@ -12,6 +12,8 @@ Zenn記事: https://zenn.dev/shibatamago_dev/articles/qwen4-max-hands-on
 - Qwen4-Max版: https://shibatamago-dev.github.io/qwen4-max-hands-on/qwen4-max_game.html
 - Gemini 4 Hydrogen版: https://shibatamago-dev.github.io/qwen4-max-hands-on/hydrogen_game.html
 
+※公開用に、各HTMLへアクセス解析（GoatCounter）のタグを1つだけ追加しています。ゲーム本体のコードは生成時のままです（検証はタグ追加前のファイルで実施しました）。
+
 ## 課題
 
 `prompt.txt` のプロンプトを、各モデルに1回だけ送信しました。必須仕様は次の7項目です。
